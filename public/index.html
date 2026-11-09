@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Shop practice API</title>
+  <link rel="stylesheet" href="/docs.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <h1>Shop practice API</h1>
+      <p>A local API for practicing <code>fetch</code>, JSON, and the DOM. No accounts and no passwords.</p>
+      <nav aria-label="Documentation">
+        <ul>
+          <li><a href="#start">Start</a></li>
+          <li><a href="#status-codes">Status codes</a></li>
+          <li><a href="#categories">Categories</a></li>
+          <li><a href="#products">Products</a></li>
+          <li><a href="#reservations">Reservations</a></li>
+          <li><a href="#reset">Reset</a></li>
+          <li><a href="#practice">DOM practice</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section id="start">
+      <h2>Start here</h2>
+      <p>The server must be running on your computer. Every example on this page talks to it.</p>
+      <p>Base URL: <code id="base-url">http://localhost:3000</code></p>
+      <p>A reservation does not create a user. It only saves the customer details you send with it: name, email, address, city, and optionally a phone number and postal code.</p>
+      <div class="note">
+        <p>The dummy data lives in memory. Restarting the server puts the original categories, products, and reservations back. You can also do that from here.</p>
+        <button type="button" class="secondary" id="reset-data">Reset dummy data</button>
+        <p id="reset-message" aria-live="polite"></p>
+      </div>
+      <h3>How to read a response</h3>
+      <p><code>fetch</code> does not throw when the server answers 404 or 400. It throws only when the server cannot be reached. Always read <code>response.status</code> or <code>response.ok</code>.</p>
+      <p>You can read the body once. A <strong>204</strong> response has no body, so do not call <code>response.json()</code> on it.</p>
+<pre><code id="ex-pattern">const response = await fetch("http://localhost:3000/api/products");
+console.log(response.status);
+
+if (!response.ok) {
+  const problem = await response.json();
+  console.log(problem.message);
+  return;
+}
+
+const products = await response.json();
+console.log(products);
+</code></pre>
+      <div class="example-bar">
+        <button type="button" data-run="ex-pattern">Run</button>
+        <button type="button" class="secondary" data-copy="ex-pattern">Copy</button>
+      </div>
+      <pre class="output" id="out-ex-pattern" aria-live="polite"></pre>
+
+      <h3>Numbers from inputs are text</h3>
+      <p>In the URL, every value is already text, so <code>?maxPrice=20</code> is correct. In a JSON body, <code>price</code>, <code>stock</code>, <code>quantity</code>, and ids must be numbers without quotes. A form input gives you a string, so convert it first:</p>
+<pre><code>const price = Number(priceInput.value);</code></pre>
+      <p>On this page, examples use <code>http://localhost:3000</code> in the source. The running page rewrites that to the address you actually opened, so Run still works if the port is not 3000. When you copy an example into your own file, keep the full address.</p>
+    </section>
+
+    <section id="shapes">
+      <h2>The three resources</h2>
+      <p>List routes return a JSON array. A route with an id returns one JSON object. An empty list is still <strong>200</strong> and <code>[]</code>, not an error.</p>
+
+      <h3>Category</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Field</th><th>Type</th><th>Rule</th></tr></thead>
+          <tbody>
+            <tr><td><code>id</code></td><td>number</td><td>Set by the server. Do not send it.</td></tr>
+            <tr><td><code>name</code></td><td>string</td><td>Required, 2 to 60 characters. Must be unique. Capitalization does not make a different name.</td></tr>
+            <tr><td><code>description</code></td><td>string</td><td>Optional, up to 300 characters.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Product</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Field</th><th>Type</th><th>Rule</th></tr></thead>
+          <tbody>
+            <tr><td><code>id</code></td><td>number</td><td>Set by the server.</td></tr>
+            <tr><td><code>name</code></td><td>string</td><td>Required, 2 to 80 characters. Two products may share a name.</td></tr>
+            <tr><td><code>description</code></td><td>string</td><td>Optional, up to 500 characters.</td></tr>
+            <tr><td><code>price</code></td><td>number</td><td>Required, from 0 to 99999.99, at most 2 decimals.</td></tr>
+            <tr><td><code>stock</code></td><td>number</td><td>Required whole number. This is how many items can still be reserved.</td></tr>
+            <tr><td><code>categoryId</code></td><td>number</td><td>Required. The category must exist.</td></tr>
+            <tr><td><code>categoryName</code></td><td>string</td><td>Read only. The server fills it in.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Reservation</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Field</th><th>Type</th><th>Rule</th></tr></thead>
+          <tbody>
+            <tr><td><code>id</code></td><td>number</td><td>Set by the server.</td></tr>
+            <tr><td><code>productId</code></td><td>number</td><td>Required when you create a reservation. It cannot be changed later.</td></tr>
+            <tr><td><code>productName</code></td><td>string</td><td>Read only.</td></tr>
+            <tr><td><code>unitPrice</code></td><td>number</td><td>Read only. The product price at the moment of the reservation.</td></tr>
+            <tr><td><code>quantity</code></td><td>number</td><td>Required whole number from 1 to 100.</td></tr>
+            <tr><td><code>total</code></td><td>number</td><td>Read only. <code>unitPrice * quantity</code>.</td></tr>
+            <tr><td><code>status</code></td><td>string</td><td><code>pending</code>, <code>confirmed</code>, or <code>cancelled</code>. New reservations are <code>pending</code>.</td></tr>
+            <tr><td><code>customer.name</code></td><td>string</td><td>Required, 2 to 80 characters.</td></tr>
+            <tr><td><code>customer.email</code></td><td>string</td><td>Required.</td></tr>
+            <tr><td><code>customer.phone</code></td><td>string or null</td><td>Optional.</td></tr>
+            <tr><td><code>customer.address</code></td><td>string</td><td>Required, 5 to 200 characters.</td></tr>
+            <tr><td><code>customer.city</code></td><td>string</td><td>Required, 2 to 80 characters.</td></tr>
+            <tr><td><code>customer.postalCode</code></td><td>string or null</td><td>Optional.</td></tr>
+            <tr><td><code>notes</code></td><td>string</td><td>Optional, up to 300 characters.</td></tr>
+            <tr><td><code>createdAt</code></td><td>string</td><td>Read only. Date in ISO format.</td></tr>
+            <tr><td><code>updatedAt</code></td><td>string</td><td>Read only.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>A <code>pending</code> or <code>confirmed</code> reservation holds its quantity out of <code>stock</code>. <code>cancelled</code> does not. Deleting a reservation gives the items back, unless it was already cancelled.</p>
+      <p>The dummy shop already contains reservation 1 (one Wireless Mouse, pending) and reservation 2 (two Coffee Mugs, confirmed). The Wireless Mouse therefore starts at 19 in stock, and the Coffee Mug at 28. Reservation 3 is a cancelled book, so it does not change the stock.</p>
+    </section>
+
+    <section id="status-codes">
+      <h2>Status codes</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Code</th><th>Meaning on this API</th></tr></thead>
+          <tbody>
+            <tr><td><strong>200</strong></td><td>The request worked, and the body contains the data.</td></tr>
+            <tr><td><strong>201</strong></td><td>A category, product, or reservation was created. The body is the new object. The <code>Location</code> header has its URL.</td></tr>
+            <tr><td><strong>204</strong></td><td>A delete worked. The body is empty.</td></tr>
+            <tr><td><strong>400</strong></td><td>The id, the query, or the JSON is wrong. Read <code>message</code> and, when it is present, <code>fields</code>.</td></tr>
+            <tr><td><strong>404</strong></td><td>That id or URL does not exist.</td></tr>
+            <tr><td><strong>409</strong></td><td>The JSON shape is valid, but it conflicts with the current data: duplicate category name, not enough stock, or a delete that would break something else.</td></tr>
+            <tr><td><strong>413</strong></td><td>The JSON body is larger than 100 KB.</td></tr>
+            <tr><td><strong>415</strong></td><td>The body was not sent as JSON. Add the header <code>Content-Type: application/json</code>.</td></tr>
+            <tr><td><strong>500</strong></td><td>Unexpected server failure. Restart the server and try again.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>An error body looks like this:</p>
+<pre><code>{
+  "error": "Bad Request",
+  "message": "Some fields are missing or invalid.",
+  "fields": {
+    "price": "price must be a number, not text. If this value comes from an input, use Number(value) before sending it."
+  }
+}</code></pre>
+      <p><code>fields</code> is only included for validation errors. Show <code>problem.message</code> to the user, and use <code>problem.fields</code> when you want a message next to one input.</p>
+    </section>
+
+    <section id="categories">
+      <h2>Categories</h2>
+      <p>Products are not nested inside a category. After you load categories, load the products with <code>GET /api/products?categoryId=1</code>.</p>
+
+      <article>
+        <h3><span class="method get">GET</span> <code>/api/categories</code></h3>
+        <p>Returns every category.</p>
+        <div class="example">
+<pre><code id="ex-get-categories">const response = await fetch("http://localhost:3000/api/categories");
+console.log(response.status);
+console.log(await response.json());</code></pre>
+          <div class="example-bar">
+            <button type="button" data-run="ex-get-categories">Run</button>
+            <button type="button" class="secondary" data-copy="ex-get-categories">Copy</button>
+          </div>
+          <pre class="output" id="out-ex-get-categories" aria-live="polite"></pre>
+        </div>
+      </article>
+
+      <article>
+        <h3><span class="method get">GET</span> <code>/api/categories/:id</code></h3>
+        <p>Returns one category. A missing id is 404.</p>
+        <div class="example">
+<pre><code id="ex-get-category">const response = await fetch("http://localhost:3000/api/categories/1");
+console.log(response.status);
+console.log(await response.json());</code></pre>
+          <div class="example-bar">
+            <button type="button" data-run="ex-get-category">Run</button>
+            <button type="button" class="secondary" data-copy="ex-get-category">Copy</button>
+          </div>
+          <pre class="output" id="out-ex-get-category" aria-live="polite"></pre>
+        </div>
+      </article>
+
+      <article>
+        <h3><span class="method post">POST</span> <code>/api/categories</code></h3>
+        <p>Creates a category. The name must be new. Running this example a second time returns <strong>409</strong> because "Stationery" already exists. Reset the data to try the success path again.</p>
+        <div class="example">
+<pre><code id="ex-post-category">const response = await fetch("http://localhost:3000/api/categories", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    name: "Stationery",
+    description: "Pens, paper, and clips."
+  })
+});
+
+console.log(response.status);
+console.log(await response.json());</code></pre>
+          <div class="example-bar">
+            <button type="button" data-run="ex-post-category">Run</button>
+            <button type="button" class="secondary" data-copy="ex-post-category">Copy</button>
+          </div>
+          <pre class="output" id="out-ex-post-category" aria-live="polite"></pre>
+        </div>
+      </article>
+
+      <article>
+        <h3><span class="method put">PUT</span> <code>/api/categories/:id</code></h3>
+        <p>Replaces the category. Send <code>name</code> and, if you want one, <code>description</code>. A missing description becomes an empty string. PUT does not create a category that does not exist.</p>
+        <div class="warn"><p>Running this changes the Outdoor category. Use Reset dummy data to restore it.</p></div>
+        <div class="example">
+<pre><code id="ex-put-category">const response = await fetch("http://localhost:3000/api/categories/4", {
+  method: "PUT",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    name: "Outdoor",
+    description: "Updated during practice."
+  })
+});
+
+console.log(response.status);
+console.log(await response.json());</code></pre>
+          <div class="example-bar">
+            <button type="button" data-run="ex-put-category">Run</button>
+            <button type="button" class="secondary" data-copy="ex-put-category">Copy</button>
+          </div>
+          <pre class="output" id="out-ex-put-category" aria-live="polite"></pre>
+        </div>
+      </article>
+
+      <article>
+        <h3><span class="method delete">DELETE</span> <code>/api/categories/:id</code></h3>
+        <p>Deletes a category that has no products. If products still use it, the API answers <strong>409</strong> and deletes nothing. A successful delete answers <strong>204</strong> with an empty body.</p>
+        <p>This example uses id 999, which is not in the dummy data, so you get a 404. Change the id to delete a real category. Try id 1 to see the 409.</p>
+        <div class="example">
+<pre><code id="ex-delete-category">const response = await fetch("http://localhost:3000/api/categories/999", {
+  method: "DELETE"
+});
+
+console.log(response.status);
+
+if (response.status === 204) {
+  console.log("Deleted. This response has no JSON body.");
+} else {
+  console.log(await response.json());
+}</code></pre>
+          <div class="example-bar">
+            <button type="button" data-run="ex-delete-category">Run</button>
+            <button type="button" class="secondary" data-copy="ex-delete-category">Copy</button>
+          </div>
+          <pre class="output" id="out-ex-delete-category" aria-live="polite"></pre>
+        </div>
+      </article>
+    </section>
+
+    <section id="products">
+      <h2>Products</h2>
+
+      <article>
+        <h3><span class="method get">GET</span> <code>/api/products</code></h3>
+        <p>Returns every product. All query parameters are optional.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Query</th><th>Example</th><th>Meaning</th></tr></thead>
+            <tbody>
+              <tr><td><code>categoryId</code></td><td><code>?categoryId=2</code></td><td>Only products in that category. An unknown id returns <code>[]</code>.</td></tr>
+              <tr><td><code>search</code></td><td><code>?search=mug</code></td><td>Name or description contains this text. Capital letters do not matter.</td></tr>
+              <tr><td><code>maxPrice</code></td><td><code>?maxPrice=20</code></td><td>Price less than or equal to this number.</td></tr>
+              <tr><td><code>inStock</code></td><td><code>?inStock=true</code></td><td><code>true</code> means stock is at least 1. <code>false</code> means stock is 0.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="example">
+<pre><code id="ex-get-products">const response = await fetch("http://localhost:3000/api/products");
+console.log(response.status);
+console.log(await response.json());</code></pre>
+          <div class="example-bar">
+            <button type="button" data-run="ex-get-products">Run</button>
+            <button type="button" class="secondary" data-copy="ex-get-products">Copy</button>
+          </div>
+          <pre class="output" id="out-ex-get-products" aria-live="polite"></pre>
+        </div>
+        <div class="example">
+<pre><code id="ex-filter-products">const response = await fetch(
+  "http://localhost:3000/api/products?categoryId=2&maxPrice=30&inStock=true"
+);
+console.log(response.status);
+console.log(await response.json());</code></pre>
+          <div class="example-bar">
+            <button type="button" data-run="ex-filter-products">Run the filtered request</button>
+            <button type="button" class="secondary" data-copy="ex-filter-products">Copy</button>
+          </div>
+          <pre class="output" id="out-ex-filter-products" aria-live="polite"></pre>
+        </div>
+      </article>
+
+      <article>
+        <h3><span class="method get">GET</span> <code>/api/products/:id</code></h3>
+        <div class="example">
+<pre><code id="ex-get-product">const response = await fetch("http://localhost:3000/api/products/3");
+console.log(response.status);
+console.log(await response.json());</code></pre>
+          <div class="example-bar">
+            <button type="button" data-run="ex-get-product">Run</button>
+            <button type="button" class="secondary" data-copy="ex-get-product">Copy</button>
+          </div>
+          <pre class="output" id="out-ex-get-product" aria-live="polite"></pre>
+        </div>
+      </article>
+
+      <article>
+        <h3><span class="method post">POST</span> <code>/api/products</code></h3>
+        <p>Creates a product in an existing category. Each click creates another product. <code>categoryName</code> is not part of the body; the server adds it to the response.</p>
+        <div class="example">
+<pre><code id="ex-post-product">const response = await fetch("http://localhost:3000/api/products", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    name: "Webcam cover",
+    description: "Slides over a laptop camera.",
+    price: 6.5,
+    stock: 15,
+    categoryId: 2
+  })
+});
+
+console.log(response.status);
+console.log(await response.json());</code></pre>
+          <div class="example-bar">
+            <button type="button" data-run="ex-post-product">Run</button>
+            <button type="button" class="secondary" data-copy="ex-post-product">Copy</button>
+          </div>
+          <pre class="output" id="out-ex-post-product" aria-live="polite"></pre>
+        </div>
+        <p>This next request is invalid on purpose. The price is text, the name is too short, and <code>categoryId</code> is missing. The status is 400, and <code>fields</code> tells you what to fix. Nothing is saved.</p>
+        <div class="example">
+<pre><code id="ex-bad-product">const response = await fetch("http://localhost:3000/api/products", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    name: "A",
+    price: "12.50",
+    stock: 4
+  })
+});
+
+console.log(response.status);
+console.log(await response.json());</code></pre>
+          <div class="example-bar">
+            <button type="button" data-run="ex-bad-product">Run the invalid request</button>
+            <button type="button" class="secondary" data-copy="ex-bad-product">Copy</button>
+          </div>
+          <pre class="output" id="out-ex-bad-product" aria-live="polite"></pre>
+        </div>
+      </article>
+
+      <article>
+        <h3><span class="method put">PUT</span> <code>/api/products/:id</code></h3>
+        <p>Replaces the product. Send every field, not only the one you want to change. <code>stock</code> is the new amount available to reserve. It does not add to the current stock, and it does not change reservations that already exist.</p>
+        <div class="warn"><p>Running this rewrites the Grid Notebook. Use Reset dummy data to restore it.</p></div>
+        <div class="example">
+<pre><code id="ex-put-product">const response = await fetch("http://localhost:3000/api/products/1", {
+  method: "PUT",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    name: "Grid Notebook",
+    description: "Updated during practice.",
+    price: 4.5,
+    stock: 40,
+    categoryId: 1
+  })
+});
+
+console.log(response.status);
+console.log(await response.json());</code></pre>
+          <div class="example-bar">
+            <button type="button" data-run="ex-put-product">Run</button>
+            <button type="button" class="secondary" data-copy="ex-put-product">Copy</button>
+          </div>
+          <pre class="output" id="out-ex-put-product" aria-live="polite"></pre>
+        </div>
+      </article>
+
+      <article>
+        <h3><span class="method delete">DELETE</span> <code>/api/products/:id</code></h3>
+        <p>Deletes a product that has no reservations. If any reservation still points at it, even a cancelled one, the API answers 409. Success is 204 with no body. Id 999 is missing on purpose.</p>
+        <div class="example">
+<pre><code id="ex-delete-product">const response = await fetch("http://localhost:3000/api/products/999", {
+  method: "DELETE"
+});
+
+console.log(response.status);
+
+if (response.status === 204) {
+  console.log("Deleted. This response has no JSON body.");
+} else {
+  console.log(await response.json());
+}</code></pre>
+          <div class="example-bar">
+            <button type="button" data-run="ex-delete-product">Run</button>
+            <button type="button" class="secondary" data-copy="ex-delete-product">Copy</button>
+          </div>
+          <pre class="output" id="out-ex-delete-product" aria-live="polite"></pre>
+        </div>
+      </article>
+    </section>
+
+    <section id="reservations">
+      <h2>Reservations</h2>
+      <p>Send the customer's details with the reservation. There is no separate user route.</p>
+
+      <article>
+        <h3><span class="method get">GET</span> <code>/api/reservations</code></h3>
+        <p>Optional query parameters: <code>status</code> (<code>pending</code>, <code>confirmed</code>, or <code>cancelled</code>) and <code>productId</code>.</p>
+        <div class="example">
+<pre><code id="ex-get-reservations">const response = await fetch("http://localhost:3000/api/reservations");
+console.log(response.status);
+console.log(await response.json());</code></pre>
+          <div class="example-bar">
+            <button type="button" data-run="ex-get-reservations">Run</button>
+            <button type="button" class="secondary" data-copy="ex-get-reservations">Copy</button>
+          </div>
+          <pre class="output" id="out-ex-get-reservations" aria-live="polite"></pre>
+        </div>
+        <div class="example">
+<pre><code id="ex-filter-reservations">const response = await fetch("http://localhost:3000/api/reservations?status=pending");
+console.log(response.status);
+console.log(await response.json());</code></pre>
+          <div class="example-bar">
+            <button type="button" data-run="ex-filter-reservations">Run the filtered request</button>
+            <button type="button" class="secondary" data-copy="ex-filter-reservations">Copy</button>
+          </div>
+          <pre class="output" id="out-ex-filter-reservations" aria-live="polite"></pre>
+        </div>
+      </article>
+
+      <article>
+        <h3><span class="method get">GET</span> <code>/api/reservations/:id</code></h3>
+        <div class="example">
+<pre><code id="ex-get-reservation">const response = await fetch("http://localhost:3000/api/reservations/1");
+console.log(response.status);
+console.log(await response.json());</code></pre>
+          <div class="example-bar">
+            <button type="button" data-run="ex-get-reservation">Run</button>
+            <button type="button" class="secondary" data-copy="ex-get-reservation">Copy</button>
+          </div>
+          <pre class="output" id="out-ex-get-reservation" aria-live="polite"></pre>
+        </div>
+      </article>
+
+      <article>
+        <h3><span class="method post">POST</span> <code>/api/reservations</code></h3>
+        <p>Reserves items and lowers <code>stock</code> by <code>quantity</code>. The status is always <code>pending</code>. If you need more items than <code>stock</code>, the API answers 409 and changes nothing.</p>
+        <p>Do not send <code>status</code>, <code>total</code>, or <code>unitPrice</code>. The server sets those.</p>
+        <div class="example">
+<pre><code id="ex-post-reservation">const response = await fetch("http://localhost:3000/api/reservations", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    productId: 4,
+    quantity: 1,
+    customer: {
+      name: "Maya Chen",
+      email: "maya.chen@example.com",
+      phone: "+33 6 11 22 33 44",
+      address: "14 Rue des Fleurs",
+      city: "Lyon",
+      postalCode: "69002"
+    },
+    notes: "Leave at the front desk."
+  })
+});
+
+console.log(response.status);
+console.log(await response.json());</code></pre>
+          <div class="example-bar">
+            <button type="button" data-run="ex-post-reservation">Run</button>
+            <button type="button" class="secondary" data-copy="ex-post-reservation">Copy</button>
+          </div>
+          <pre class="output" id="out-ex-post-reservation" aria-live="polite"></pre>
+        </div>
+      </article>
+
+      <article>
+        <h3><span class="method patch">PATCH</span> <code>/api/reservations/:id</code></h3>
+        <p>Changes only the fields you send. You can send <code>status</code>, <code>quantity</code>, <code>notes</code>, and <code>customer</code>. Inside <code>customer</code>, send only the parts that change. Other customer fields stay as they are.</p>
+        <p>Moving a reservation to <code>cancelled</code> returns its quantity to the product. Moving it back to <code>pending</code> or <code>confirmed</code> takes the items again, if enough stock remains. Raising <code>quantity</code> takes the difference. Lowering it gives the difference back.</p>
+        <div class="warn"><p>Running this confirms reservation 1. Send <code>{ "status": "cancelled" }</code> if you want to see the stock come back, or reset the dummy data.</p></div>
+        <div class="example">
+<pre><code id="ex-patch-reservation">const response = await fetch("http://localhost:3000/api/reservations/1", {
+  method: "PATCH",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    status: "confirmed"
+  })
+});
+
+console.log(response.status);
+console.log(await response.json());</code></pre>
+          <div class="example-bar">
+            <button type="button" data-run="ex-patch-reservation">Run</button>
+            <button type="button" class="secondary" data-copy="ex-patch-reservation">Copy</button>
+          </div>
+          <pre class="output" id="out-ex-patch-reservation" aria-live="polite"></pre>
+        </div>
+        <div class="example">
+<pre><code id="ex-patch-customer">const response = await fetch("http://localhost:3000/api/reservations/1", {
+  method: "PATCH",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    customer: { city: "Rennes" },
+    notes: "Call before delivery."
+  })
+});
+
+console.log(response.status);
+console.log(await response.json());</code></pre>
+          <div class="example-bar">
+            <button type="button" data-run="ex-patch-customer">Run the customer update</button>
+            <button type="button" class="secondary" data-copy="ex-patch-customer">Copy</button>
+          </div>
+          <pre class="output" id="out-ex-patch-customer" aria-live="polite"></pre>
+        </div>
+      </article>
+
+      <article>
+        <h3><span class="method delete">DELETE</span> <code>/api/reservations/:id</code></h3>
+        <p>Removes the reservation. If it was pending or confirmed, the quantity is added back to the product stock. Success is 204. Id 999 is missing on purpose.</p>
+        <div class="example">
+<pre><code id="ex-delete-reservation">const response = await fetch("http://localhost:3000/api/reservations/999", {
+  method: "DELETE"
+});
+
+console.log(response.status);
+
+if (response.status === 204) {
+  console.log("Deleted. This response has no JSON body.");
+} else {
+  console.log(await response.json());
+}</code></pre>
+          <div class="example-bar">
+            <button type="button" data-run="ex-delete-reservation">Run</button>
+            <button type="button" class="secondary" data-copy="ex-delete-reservation">Copy</button>
+          </div>
+          <pre class="output" id="out-ex-delete-reservation" aria-live="polite"></pre>
+        </div>
+      </article>
+    </section>
+
+    <section id="reset">
+      <h2>Reset the data</h2>
+      <article>
+        <h3><span class="method post">POST</span> <code>/api/reset</code></h3>
+        <p>Loads the original dummy data again. Categories, products, and reservations you created are removed. No JSON body is required.</p>
+        <div class="example">
+<pre><code id="ex-reset">const response = await fetch("http://localhost:3000/api/reset", {
+  method: "POST"
+});
+
+console.log(response.status);
+console.log(await response.json());</code></pre>
+          <div class="example-bar">
+            <button type="button" data-run="ex-reset">Run</button>
+            <button type="button" class="secondary" data-copy="ex-reset">Copy</button>
+          </div>
+          <pre class="output" id="out-ex-reset" aria-live="polite"></pre>
+        </div>
+      </article>
+    </section>
+
+    <section id="practice">
+      <h2>Practice with the DOM</h2>
+      <p>The block below is the same kind of code you will write in your own file. Run it to paint the products into this page. The text comes from <code>textContent</code>, not from an HTML string.</p>
+      <div class="example">
+<pre><code id="ex-render">const response = await fetch("http://localhost:3000/api/products");
+const message = document.querySelector("#product-message");
+const list = document.querySelector("#product-list");
+list.innerHTML = "";
+
+console.log(response.status);
+
+if (!response.ok) {
+  const problem = await response.json();
+  message.textContent = problem.message;
+  console.log(problem.message);
+  return;
+}
+
+const products = await response.json();
+message.textContent = products.length + " products";
+
+for (const product of products) {
+  const card = document.createElement("article");
+  card.className = "product-card";
+
+  const title = document.createElement("h3");
+  title.textContent = product.name;
+
+  const meta = document.createElement("p");
+  meta.textContent =
+    product.categoryName +
+    " · " +
+    product.price.toFixed(2) +
+    " · " +
+    product.stock +
+    " in stock";
+
+  card.append(title, meta);
+  list.append(card);
+}
+
+console.log(products.length + " products rendered");</code></pre>
+        <div class="example-bar">
+          <button type="button" data-run="ex-render">Show products on this page</button>
+          <button type="button" class="secondary" data-copy="ex-render">Copy</button>
+        </div>
+        <pre class="output" id="out-ex-render" aria-live="polite"></pre>
+      </div>
+      <p id="product-message" aria-live="polite"></p>
+      <div id="product-list" class="product-grid"></div>
+
+      <h3>Reserve something from a form</h3>
+      <p>The values below are already filled in. Press Reserve to send a real POST. Clear the name and press it again if you want to see a 400 from the API. The product menu is filled with <code>GET /api/products</code> when the page loads.</p>
+      <form id="reserve-form" class="reserve">
+        <div class="wide">
+          <label for="productId">Product</label>
+          <select id="productId" name="productId"></select>
+        </div>
+        <div>
+          <label for="quantity">Quantity</label>
+          <input id="quantity" name="quantity" type="number" min="1" max="100" value="1">
+        </div>
+        <div>
+          <label for="customerName">Name</label>
+          <input id="customerName" name="customerName" value="Maya Chen">
+        </div>
+        <div>
+          <label for="email">Email</label>
+          <input id="email" name="email" value="maya.chen@example.com">
+        </div>
+        <div>
+          <label for="phone">Phone</label>
+          <input id="phone" name="phone" value="+33 6 11 22 33 44">
+        </div>
+        <div class="wide">
+          <label for="address">Address</label>
+          <input id="address" name="address" value="14 Rue des Fleurs">
+        </div>
+        <div>
+          <label for="city">City</label>
+          <input id="city" name="city" value="Lyon">
+        </div>
+        <div>
+          <label for="postalCode">Postal code</label>
+          <input id="postalCode" name="postalCode" value="69002">
+        </div>
+        <div class="wide">
+          <label for="notes">Notes</label>
+          <textarea id="notes" name="notes">Leave at the front desk.</textarea>
+        </div>
+        <div class="wide form-actions">
+          <button type="submit">Reserve</button>
+        </div>
+      </form>
+      <pre class="output" id="reserve-result" aria-live="polite"></pre>
+      <p>The same request, written out so you can copy it. In your own page, build the object from the form instead of typing the values.</p>
+      <div class="example">
+<pre><code id="ex-form-pattern">const response = await fetch("http://localhost:3000/api/reservations", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    productId: Number(productSelect.value),
+    quantity: Number(quantityInput.value),
+    customer: {
+      name: nameInput.value,
+      email: emailInput.value,
+      phone: phoneInput.value,
+      address: addressInput.value,
+      city: cityInput.value,
+      postalCode: postalCodeInput.value
+    },
+    notes: notesInput.value
+  })
+});
+
+const result = document.querySelector("#result");
+
+if (!response.ok) {
+  const problem = await response.json();
+  result.textContent = problem.message;
+  return;
+}
+
+const reservation = await response.json();
+result.textContent = "Reserved " + reservation.productName + ". Total: " + reservation.total;
+</code></pre>
+        <div class="example-bar">
+          <button type="button" class="secondary" data-copy="ex-form-pattern">Copy</button>
+        </div>
+      </div>
+
+      <h3>A page you can save</h3>
+      <p>Copy this into <code>shop.html</code>, keep the API server running, and open the file in your browser. It works from your own folder because this API allows calls from other pages.</p>
+      <div class="example">
+<pre><code id="ex-starter">&lt;!DOCTYPE html&gt;
+&lt;html lang="en"&gt;
+&lt;head&gt;
+  &lt;meta charset="utf-8"&gt;
+  &lt;title&gt;My shop&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;h1&gt;Products&lt;/h1&gt;
+  &lt;p id="message"&gt;&lt;/p&gt;
+  &lt;ul id="products"&gt;&lt;/ul&gt;
+  &lt;script&gt;
+    const API = "http://localhost:3000";
+
+    async function loadProducts() {
+      const message = document.querySelector("#message");
+      const list = document.querySelector("#products");
+      list.innerHTML = "";
+
+      try {
+        const response = await fetch(API + "/api/products");
+
+        if (!response.ok) {
+          const problem = await response.json();
+          message.textContent = problem.message;
+          return;
+        }
+
+        const products = await response.json();
+        message.textContent = products.length + " products";
+
+        for (const product of products) {
+          const item = document.createElement("li");
+          item.textContent =
+            product.name + " — " + product.price + " (" + product.stock + " in stock)";
+          list.appendChild(item);
+        }
+      } catch (error) {
+        message.textContent = "Could not reach the API. Is the server running?";
+      }
+    }
+
+    loadProducts();
+  &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+        <div class="example-bar">
+          <button type="button" class="secondary" data-copy="ex-starter">Copy the page</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="mistakes">
+      <h2>Mistakes that waste an hour</h2>
+      <ul>
+        <li>A 404 does not throw. Check <code>response.ok</code> before you treat the JSON as a product or a list.</li>
+        <li><code>fetch</code> throws when the address is wrong or the server is stopped. That is the <code>catch</code> branch.</li>
+        <li>Forgetting <code>Content-Type: application/json</code> gives you 415.</li>
+        <li>Sending <code>"12.50"</code> instead of <code>12.5</code> gives you 400. Use <code>Number(input.value)</code>.</li>
+        <li>Calling <code>response.json()</code> twice, or calling it on a 204, fails. Read the body once, and skip it when the status is 204.</li>
+        <li>PUT replaces the whole category or product. PATCH, which this API uses for reservations, sends only the changes.</li>
+        <li>Your new products disappear when the server restarts. That is expected. Use Reset, or restart, when you want the original shop back.</li>
+      </ul>
+    </section>
+  </main>
+  <script src="/docs.js"></script>
+</body>
+</html>
