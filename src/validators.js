@@ -358,16 +358,38 @@ function parseCategoryBody(body) {
 function parseProductBody(body) {
   requireObject(body);
   const fields = {};
-  rejectUnknown(body, ["name", "description", "price", "stock", "categoryId"], fields);
+  rejectUnknown(body, ["name", "description", "price", "stock", "categoryId", "image"], fields);
 
   const name = readString(body, "name", "name", { required: true, min: 2, max: 80 }, fields);
   const description = readString(body, "description", "description", { max: 500 }, fields);
   const price = readPrice(body.price, fields);
   const stock = readStock(body.stock, fields);
   const categoryId = readJsonId(body.categoryId, "categoryId", fields);
+  const image = readImage(body, fields);
 
   assertFields(fields);
-  return { name, description, price, stock, categoryId };
+  return { name, description, price, stock, categoryId, image };
+}
+
+function readImage(body, fields) {
+  if (!Object.prototype.hasOwnProperty.call(body, "image")) return undefined;
+  if (body.image === null || body.image === "") return "";
+  if (typeof body.image !== "string") {
+    fields.image = "image must be a text address, such as /images/mug.svg or https://example.com/mug.jpg.";
+    return "";
+  }
+
+  const image = body.image.trim();
+  if (!image) return "";
+  if (image.length > 300) {
+    fields.image = "image must be at most 300 characters.";
+    return "";
+  }
+  if (!/^(\/|https?:\/\/)/.test(image)) {
+    fields.image = "image must start with / or http:// or https://.";
+    return "";
+  }
+  return image;
 }
 
 function parseProductQuery(query) {

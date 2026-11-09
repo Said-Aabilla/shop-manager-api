@@ -35,6 +35,7 @@ function createSeedState() {
       price: 4.5,
       stock: 40,
       categoryId: 1,
+      image: "/images/notebook.svg",
     },
     {
       id: 2,
@@ -43,6 +44,7 @@ function createSeedState() {
       price: 12,
       stock: 15,
       categoryId: 1,
+      image: "/images/book.svg",
     },
     {
       id: 3,
@@ -51,6 +53,7 @@ function createSeedState() {
       price: 24.9,
       stock: 20,
       categoryId: 2,
+      image: "/images/mouse.svg",
     },
     {
       id: 4,
@@ -59,6 +62,7 @@ function createSeedState() {
       price: 9.5,
       stock: 50,
       categoryId: 2,
+      image: "/images/cable.svg",
     },
     {
       id: 5,
@@ -67,6 +71,7 @@ function createSeedState() {
       price: 32,
       stock: 8,
       categoryId: 2,
+      image: "/images/lamp.svg",
     },
     {
       id: 6,
@@ -75,6 +80,7 @@ function createSeedState() {
       price: 8,
       stock: 30,
       categoryId: 3,
+      image: "/images/mug.svg",
     },
     {
       id: 7,
@@ -83,6 +89,7 @@ function createSeedState() {
       price: 27.5,
       stock: 12,
       categoryId: 3,
+      image: "/images/kettle.svg",
     },
     {
       id: 8,
@@ -91,6 +98,7 @@ function createSeedState() {
       price: 14,
       stock: 18,
       categoryId: 4,
+      image: "/images/bottle.svg",
     },
     {
       id: 9,
@@ -99,6 +107,7 @@ function createSeedState() {
       price: 22,
       stock: 10,
       categoryId: 4,
+      image: "/images/blanket.svg",
     },
   ];
 

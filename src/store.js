@@ -49,6 +49,7 @@ function createStore() {
       stock: product.stock,
       categoryId: product.categoryId,
       categoryName: category ? category.name : null,
+      image: product.image || "/images/placeholder.svg",
     };
   }
 
@@ -202,6 +203,7 @@ function createStore() {
         price: input.price,
         stock: input.stock,
         categoryId: input.categoryId,
+        image: input.image || "/images/placeholder.svg",
       };
       state.products.push(product);
       return toProduct(product);
@@ -215,6 +217,7 @@ function createStore() {
       product.price = input.price;
       product.stock = input.stock;
       product.categoryId = input.categoryId;
+      if (input.image !== undefined) product.image = input.image || "/images/placeholder.svg";
       return toProduct(product);
     },
 
